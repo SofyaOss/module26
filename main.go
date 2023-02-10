@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -22,6 +23,7 @@ func checkPositive(done <-chan int, c <-chan int) <-chan int {
 				close(suitableNumbers)
 				return
 			case num := <-c:
+				log.Println("checking input data")
 				if num > 0 {
 					select {
 					case <-done:
@@ -45,6 +47,7 @@ func checkMultiple(done <-chan int, c <-chan int) <-chan int {
 				close(suitableNumbers)
 				return
 			case num := <-c:
+				log.Println("checking input data")
 				if num%3 != 0 {
 					select {
 					case <-done:
@@ -67,10 +70,12 @@ type buffer struct {
 }
 
 func NewBuffer(size int) *buffer {
+	log.Println("create new buffer")
 	return &buffer{sync.Mutex{}, make([]int, size), size, 0}
 }
 
 func (b *buffer) Extract() []int {
+	log.Println("extracting data")
 	b.m.Lock()
 	defer b.m.Unlock()
 	if b.numbers[b.size-1] > 0 {
@@ -88,6 +93,7 @@ func (b *buffer) Extract() []int {
 }
 
 func (b *buffer) Add(newNum int) {
+	log.Println("add data to buffer")
 	b.m.Lock()
 	defer b.m.Unlock()
 	if b.oldVal < b.size {
@@ -101,6 +107,7 @@ func (b *buffer) Add(newNum int) {
 }
 
 func Buffering(done <-chan int, c <-chan int) <-chan int {
+	log.Println("start buffering")
 	buf := NewBuffer(bufferSize)
 	res := make(chan int)
 	go func() {
@@ -139,6 +146,7 @@ func Buffering(done <-chan int, c <-chan int) <-chan int {
 }
 
 func Pipeline(done <-chan int, c <-chan int) <-chan int {
+	log.Println("start pipeline")
 	firstCheck := checkPositive(done, c)
 	secondCheck := checkMultiple(done, firstCheck)
 	output := Buffering(done, secondCheck)
@@ -157,6 +165,7 @@ func main() {
 			scanner.Scan()
 			line = scanner.Text()
 			if strings.EqualFold(line, "exit") || strings.EqualFold(line, "end") {
+				log.Println("program completion")
 				fmt.Println("Программа завершила работу!")
 				close(c)
 				return
@@ -171,6 +180,7 @@ func main() {
 	}()
 	pipeline := Pipeline(done, c)
 	for j := range pipeline {
+		log.Println("buffer output")
 		fmt.Println("Данные из буфера:", j)
 	}
 }
